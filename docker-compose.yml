@@ -3,6 +3,7 @@ services:
     image: postgres:16
     container_name: postgres
     environment:
+      POSTGRES_DB: library # Explicitly set default database to avoid automatic creation of a DB named after POSTGRES_USER (e.g., 'app').
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
