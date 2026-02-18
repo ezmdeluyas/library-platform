@@ -1,0 +1,22 @@
+﻿# Env
+.env
+
+# IntelliJ
+.idea/
+*.iml
+
+# Maven
+**/target/
+
+# Node
+**/node_modules/
+**/.next/
+**/out/
+**/.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+**/*.log
