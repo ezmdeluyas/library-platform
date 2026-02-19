@@ -6,6 +6,10 @@ import com.zmd.auth_service.dto.request.RefreshRequest;
 import com.zmd.auth_service.dto.request.RegisterRequest;
 import com.zmd.auth_service.dto.response.AuthResponse;
 import com.zmd.auth_service.dto.response.MessageResponse;
+import com.zmd.auth_service.entity.RoleEntity;
+import com.zmd.auth_service.entity.UserEntity;
+import com.zmd.auth_service.exception.EmailAlreadyExistsException;
+import com.zmd.auth_service.exception.RoleNotFoundException;
 import com.zmd.auth_service.repository.RefreshTokenRepository;
 import com.zmd.auth_service.repository.RoleRepository;
 import com.zmd.auth_service.repository.UserRepository;
@@ -16,10 +20,14 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
+import java.util.UUID;
+
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+    private static final String ROLE_USER = "ROLE_USER";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -27,10 +35,29 @@ public class AuthServiceImpl implements AuthService {
     private final JwtEncoder jwtEncoder;
     private final JwtConfigProperties jwtConfigProperties;
 
-
+    @Transactional
     @Override
     public MessageResponse register(RegisterRequest registerRequest) {
-        return null;
+        String email = registerRequest.email().toLowerCase().trim();
+
+        if (userRepository.existsByEmail(email)) {
+            throw new EmailAlreadyExistsException(email);
+        }
+
+        RoleEntity userRole = roleRepository.findByName(ROLE_USER).orElseThrow(() -> new RoleNotFoundException(ROLE_USER));
+        String encodedPassword = passwordEncoder.encode(registerRequest.password());
+
+        UserEntity user = UserEntity.createNew(
+                UUID.randomUUID(),
+                email,
+                registerRequest.firstName().trim(),
+                registerRequest.lastName().trim(),
+                encodedPassword,
+                Set.of(userRole)
+        );
+
+        userRepository.save(user);
+        return new MessageResponse("User registered successfully");
     }
 
     @Override

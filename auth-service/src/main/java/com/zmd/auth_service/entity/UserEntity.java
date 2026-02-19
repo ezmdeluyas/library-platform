@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.UUID;
 
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "users")
@@ -49,6 +48,27 @@ public class UserEntity {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private Set<RoleEntity> roles = new HashSet<>();
+    private final Set<RoleEntity> roles = new HashSet<>();
+
+    public static UserEntity createNew(
+            UUID id,
+            String email,
+            String firstName,
+            String lastName,
+            String passwordHash,
+            Set<RoleEntity> roles
+    ) {
+        UserEntity user = new UserEntity();
+        user.id = id;
+        user.email = email;
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.passwordHash = passwordHash;
+        user.enabled = true;
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("User must have at least one role");
+        }
+        return user;
+    }
 
 }
