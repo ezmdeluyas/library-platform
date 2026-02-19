@@ -15,8 +15,10 @@ public record RegisterRequest(
         String password,
 
         @Size(max = 255)
+        @NotBlank(message = "First name is required")
         String firstName,
 
         @Size(max = 255)
+        @NotBlank(message = "Last name is required")
         String lastName
 ) {}
