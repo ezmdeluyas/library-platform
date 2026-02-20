@@ -39,4 +39,20 @@ public class RefreshTokenEntity {
     @Column(name = "replaced_by_token_id")
     private UUID replacedByTokenId;
 
+    public static RefreshTokenEntity createNew(
+            UUID id,
+            UserEntity user,
+            String tokenHash,
+            Instant expiresAt
+    ) {
+        RefreshTokenEntity entity = new RefreshTokenEntity();
+        entity.id = id;
+        entity.user = user;
+        entity.tokenHash = tokenHash;
+        entity.expiresAt = expiresAt;
+        entity.revokedAt = null;
+        entity.replacedByTokenId = null;
+        return entity;
+    }
+
 }
