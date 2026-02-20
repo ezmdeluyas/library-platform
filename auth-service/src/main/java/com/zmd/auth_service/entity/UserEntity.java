@@ -68,6 +68,7 @@ public class UserEntity {
         if (roles == null || roles.isEmpty()) {
             throw new IllegalArgumentException("User must have at least one role");
         }
+        user.roles.addAll(roles);
         return user;
     }
 
