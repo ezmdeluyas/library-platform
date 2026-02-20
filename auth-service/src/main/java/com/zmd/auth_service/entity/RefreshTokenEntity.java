@@ -66,4 +66,8 @@ public class RefreshTokenEntity {
         this.replacedByTokenId = replacedByTokenId;
     }
 
+    public void revoke(Instant now) {
+        this.revokedAt = now;
+    }
+
 }

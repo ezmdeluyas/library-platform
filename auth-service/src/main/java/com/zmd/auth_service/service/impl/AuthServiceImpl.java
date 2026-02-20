@@ -33,6 +33,7 @@ import static java.util.stream.Collectors.toSet;
 public class AuthServiceImpl implements AuthService {
     private static final String ROLE_USER = "ROLE_USER";
     private static final String TOKEN_TYPE = "Bearer";
+    private static final String LOGGED_OUT_MESSAGE = "Logged out successfully";
     private final SecureRandom secureRandom = new SecureRandom();
 
     private final UserRepository userRepository;
@@ -119,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public AuthResponse refresh(RefreshRequest refreshRequest) {
-        String raw = refreshRequest.refreshToken();
+        String raw = refreshRequest.refreshToken().trim();
         String hash = TokenUtils.sha256Hex(raw);
 
         RefreshTokenEntity existing = refreshTokenRepository.findByTokenHash(hash).orElseThrow(InvalidRefreshTokenException::new);
@@ -172,8 +173,25 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(accessToken, newRaw, TOKEN_TYPE, accessExpiry, user.getId(), user.getEmail(), roleNames);
     }
 
+    @Transactional
     @Override
     public MessageResponse logout(RefreshRequest refreshRequest) {
-        return null;
+        String raw = refreshRequest.refreshToken().trim();
+        String hash = TokenUtils.sha256Hex(raw);
+
+        RefreshTokenEntity existing = refreshTokenRepository.findByTokenHash(hash).orElse(null);
+        Instant now = Instant.now();
+
+        if (existing == null) {
+            return new MessageResponse(LOGGED_OUT_MESSAGE);
+        }
+
+        if (existing.isRevoked() || existing.isExpired(now)) {
+            return new MessageResponse(LOGGED_OUT_MESSAGE);
+        }
+
+        existing.revoke(now);
+
+        return new  MessageResponse(LOGGED_OUT_MESSAGE);
     }
 }
