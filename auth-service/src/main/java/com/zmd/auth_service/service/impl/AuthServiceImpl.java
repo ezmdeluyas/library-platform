@@ -9,10 +9,7 @@ import com.zmd.auth_service.dto.response.MessageResponse;
 import com.zmd.auth_service.entity.RefreshTokenEntity;
 import com.zmd.auth_service.entity.RoleEntity;
 import com.zmd.auth_service.entity.UserEntity;
-import com.zmd.auth_service.exception.AccountDisabledException;
-import com.zmd.auth_service.exception.EmailAlreadyExistsException;
-import com.zmd.auth_service.exception.InvalidCredentialsException;
-import com.zmd.auth_service.exception.RoleNotFoundException;
+import com.zmd.auth_service.exception.*;
 import com.zmd.auth_service.repository.RefreshTokenRepository;
 import com.zmd.auth_service.repository.RoleRepository;
 import com.zmd.auth_service.repository.UserRepository;
@@ -100,13 +97,12 @@ public class AuthServiceImpl implements AuthService {
                 .claim("roles", roleNames)
                 .build();
 
-        Jwt jwt = jwtEncoder.encode(
+        String accessToken = jwtEncoder.encode(
                 JwtEncoderParameters.from(
                         JwsHeader.with(() -> "HS256").build(),
                         claims
-                ));
+                )).getTokenValue();
 
-        String token = jwt.getTokenValue();
         String refreshToken = TokenUtils.generateRefreshTokenHex(32);
         String tokenHash = TokenUtils.sha256Hex(refreshToken);
         RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.createNew(
@@ -117,12 +113,63 @@ public class AuthServiceImpl implements AuthService {
         );
         refreshTokenRepository.save(refreshTokenEntity);
 
-        return new AuthResponse(token, refreshToken, TOKEN_TYPE, accessExpiry, user.getId(), user.getEmail(), roleNames);
+        return new AuthResponse(accessToken, refreshToken, TOKEN_TYPE, accessExpiry, user.getId(), user.getEmail(), roleNames);
     }
 
+    @Transactional
     @Override
     public AuthResponse refresh(RefreshRequest refreshRequest) {
-        return null;
+        String raw = refreshRequest.refreshToken();
+        String hash = TokenUtils.sha256Hex(raw);
+
+        RefreshTokenEntity existing = refreshTokenRepository.findByTokenHash(hash).orElseThrow(InvalidRefreshTokenException::new);
+
+        Instant now = Instant.now();
+
+        if (existing.isRevoked()) throw new InvalidRefreshTokenException();
+        if (existing.isExpired(now)) throw new InvalidRefreshTokenException();
+
+        UserEntity user = existing.getUser();
+        if (!user.isEnabled()) throw new AccountDisabledException();
+
+        Set<String> roleNames = user.getRoles().stream().map(RoleEntity::getName).collect(toSet());
+
+        String newRaw = TokenUtils.generateRefreshTokenHex(32);
+        String newHash = TokenUtils.sha256Hex(newRaw);
+
+        Instant refreshExpiry = now.plus(jwtConfigProperties.refreshTtl());
+        UUID newId = UUID.randomUUID();
+
+        RefreshTokenEntity replacement = RefreshTokenEntity.createNew(
+                newId,
+                user,
+                newHash,
+                refreshExpiry
+        );
+        refreshTokenRepository.save(replacement);
+
+        existing.revoke(now, newId);
+
+        refreshTokenRepository.save(existing); // Explicit save. Inside transactional, we can skip save for existing object
+
+        Instant accessExpiry = now.plus(jwtConfigProperties.accessTtl());
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer(jwtConfigProperties.issuer())
+                .subject(replacement.getId().toString())
+                .issuedAt(now)
+                .expiresAt(accessExpiry)
+                .claim("email", user.getEmail())
+                .claim("roles", roleNames)
+                .build();
+
+        String accessToken = jwtEncoder.encode(
+                JwtEncoderParameters.from(
+                        JwsHeader.with(() -> "HS256").build(),
+                        claims
+                )).getTokenValue();
+
+        return new AuthResponse(accessToken, newRaw, TOKEN_TYPE, accessExpiry, user.getId(), user.getEmail(), roleNames);
     }
 
     @Override

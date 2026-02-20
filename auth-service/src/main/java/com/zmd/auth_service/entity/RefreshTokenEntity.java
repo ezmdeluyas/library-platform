@@ -4,13 +4,11 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "refresh_tokens")
@@ -53,6 +51,19 @@ public class RefreshTokenEntity {
         entity.revokedAt = null;
         entity.replacedByTokenId = null;
         return entity;
+    }
+
+    public boolean isExpired(Instant now) {
+        return expiresAt.isBefore(now);
+    }
+
+    public boolean isRevoked() {
+        return revokedAt != null;
+    }
+
+    public void revoke(Instant now, UUID replacedByTokenId) {
+        this.revokedAt = now;
+        this.replacedByTokenId = replacedByTokenId;
     }
 
 }

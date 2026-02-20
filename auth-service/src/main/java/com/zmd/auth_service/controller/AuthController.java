@@ -1,6 +1,7 @@
 package com.zmd.auth_service.controller;
 
 import com.zmd.auth_service.dto.request.LoginRequest;
+import com.zmd.auth_service.dto.request.RefreshRequest;
 import com.zmd.auth_service.dto.request.RegisterRequest;
 import com.zmd.auth_service.dto.response.AuthResponse;
 import com.zmd.auth_service.dto.response.MessageResponse;
@@ -31,6 +32,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(authService.login(loginRequest));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest refreshRequest) {
+        return ResponseEntity.ok(authService.refresh(refreshRequest));
     }
 
 }
