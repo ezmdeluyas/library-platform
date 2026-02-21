@@ -6,6 +6,9 @@ import com.zmd.auth_service.dto.request.RegisterRequest;
 import com.zmd.auth_service.dto.response.AuthResponse;
 import com.zmd.auth_service.dto.response.MessageResponse;
 import com.zmd.auth_service.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Authentication", description = "APIs for user authentication and token management")
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -23,22 +27,27 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @Operation(summary = "Register a new user")
     @PostMapping("/register")
     public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
         MessageResponse response = authService.register(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(summary = "Authenticate user and generate JWT tokens")
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 
+    @Operation(summary = "Refresh access token using refresh token")
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest refreshRequest) {
         return ResponseEntity.ok(authService.refresh(refreshRequest));
     }
 
+    @Operation(summary = "Logout user and invalidate refresh token")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/logout")
     public ResponseEntity<MessageResponse> logout(@Valid @RequestBody RefreshRequest refreshRequest) {
         return ResponseEntity.ok(authService.logout(refreshRequest));
