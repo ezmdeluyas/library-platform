@@ -98,13 +98,6 @@
 			<version>1.5.5.Final</version>
 		</dependency>
 
-		<!-- Swagger / OpenAPI -->
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>3.0.1</version>
-		</dependency>
-
 		<!-- Tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
