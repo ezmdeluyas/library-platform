@@ -1,8 +1,6 @@
 package com.zmd.auth_service.controller;
 
-import com.zmd.auth_service.api.docs.ApiCommonAuthErrors;
-import com.zmd.auth_service.api.docs.ApiCommonWriteErrors;
-import com.zmd.auth_service.api.docs.ApiLoginAuthErrors;
+import com.zmd.auth_service.api.docs.*;
 import com.zmd.auth_service.dto.request.LoginRequest;
 import com.zmd.auth_service.dto.request.RefreshRequest;
 import com.zmd.auth_service.dto.request.RegisterRequest;
@@ -41,7 +39,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Authenticate user and generate JWT tokens", security = {})
-    @ApiCommonAuthErrors
+    @ApiLoginErrors
     @ApiResponse(responseCode = "200", description = "Login successful")
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
@@ -49,7 +47,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Refresh access token using refresh token", security = {})
-    @ApiCommonWriteErrors
+    @ApiRefreshErrors
     @ApiResponse(responseCode = "200", description = "Token refreshed successfully")
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest refreshRequest) {

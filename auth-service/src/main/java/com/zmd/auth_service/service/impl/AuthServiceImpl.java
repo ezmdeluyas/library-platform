@@ -123,23 +123,26 @@ public class AuthServiceImpl implements AuthService {
         String raw = refreshRequest.refreshToken().trim();
         String hash = TokenUtils.sha256Hex(raw);
 
-        RefreshTokenEntity existing = refreshTokenRepository.findByTokenHash(hash).orElseThrow(InvalidRefreshTokenException::new);
+        RefreshTokenEntity existing = refreshTokenRepository
+                .findByTokenHash(hash)
+                .orElseThrow(InvalidRefreshTokenException::new);
 
         Instant now = Instant.now();
 
-        if (existing.isRevoked()) throw new InvalidRefreshTokenException();
-        if (existing.isExpired(now)) throw new InvalidRefreshTokenException();
+        if (existing.isExpired(now)) {
+            throw new InvalidRefreshTokenException();
+        }
 
         UserEntity user = existing.getUser();
-        if (!user.isEnabled()) throw new AccountDisabledException();
+        if (!user.isEnabled()) {
+            throw new AccountDisabledException();
+        }
 
-        Set<String> roleNames = user.getRoles().stream().map(RoleEntity::getName).collect(toSet());
-
+        // Prepare new token FIRST
         String newRaw = TokenUtils.generateRefreshTokenHex(32);
         String newHash = TokenUtils.sha256Hex(newRaw);
-
-        Instant refreshExpiry = now.plus(jwtConfigProperties.refreshTtl());
         UUID newId = UUID.randomUUID();
+        Instant refreshExpiry = now.plus(jwtConfigProperties.refreshTtl());
 
         RefreshTokenEntity replacement = RefreshTokenEntity.createNew(
                 newId,
@@ -147,17 +150,29 @@ public class AuthServiceImpl implements AuthService {
                 newHash,
                 refreshExpiry
         );
+
         refreshTokenRepository.save(replacement);
 
-        existing.revoke(now, newId);
+        // Atomic rotation
+        int updated = refreshTokenRepository.rotate(hash, newId, now);
 
-        refreshTokenRepository.save(existing); // Explicit save. Inside transactional, we can skip save for existing object
+        if (updated == 0) {
+            // Someone else already rotated it → reuse attack
+            refreshTokenRepository.revokeAllActiveByUserId(user.getId(), now);
+            throw new RefreshTokenReuseDetectedException();
+        }
+
+        // Generate new access token
+        Set<String> roleNames = user.getRoles()
+                .stream()
+                .map(RoleEntity::getName)
+                .collect(toSet());
 
         Instant accessExpiry = now.plus(jwtConfigProperties.accessTtl());
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(jwtConfigProperties.issuer())
-                .subject(replacement.getId().toString())
+                .subject(user.getId().toString())
                 .issuedAt(now)
                 .expiresAt(accessExpiry)
                 .claim("email", user.getEmail())
@@ -168,7 +183,8 @@ public class AuthServiceImpl implements AuthService {
                 JwtEncoderParameters.from(
                         JwsHeader.with(() -> "HS256").build(),
                         claims
-                )).getTokenValue();
+                )
+        ).getTokenValue();
 
         return new AuthResponse(accessToken, newRaw, TOKEN_TYPE, accessExpiry, user.getId(), user.getEmail(), roleNames);
     }

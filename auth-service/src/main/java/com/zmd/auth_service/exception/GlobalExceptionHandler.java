@@ -49,6 +49,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Role not found", e.getMessage(), ROLE_NOT_FOUND, req);
     }
 
+    @ExceptionHandler(RefreshTokenReuseDetectedException.class)
+    public ResponseEntity<ProblemDetail> handleReuse(RefreshTokenReuseDetectedException e, HttpServletRequest req
+    ) {
+        return build(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected", e.getMessage(), REFRESH_TOKEN_REUSE, req);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest req) {
         List<FieldValidationError> errors = e.getBindingResult()

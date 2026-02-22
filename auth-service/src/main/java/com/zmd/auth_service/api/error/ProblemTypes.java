@@ -14,4 +14,5 @@ public final class ProblemTypes {
     public static final String INTERNAL_ERROR = "internal-error";
     public static final String UNAUTHORIZED = "unauthorized";
     public static final String ACCESS_DENIED = "access-denied";
+    public static final String REFRESH_TOKEN_REUSE = "refresh-token-reuse";
 }

@@ -78,6 +78,28 @@ public final class ProblemExamples {
         }
         """;
 
+    public static final String REFRESH_TOKEN_REUSE_401 = """
+        {
+          "detail": "Refresh token reuse detected. All sessions revoked.",
+          "instance": "/api/v1/auth/refresh",
+          "status": 401,
+          "title": "Refresh token reuse detected",
+          "type": "https://zmd.com/problems/refresh-token-reuse-detected",
+          "timestamp": "2026-02-22T08:00:00.000000000Z"
+        }
+        """;
+
+    public static final String INVALID_JWT_401 = """
+        {
+          "detail": "The access token is invalid or expired.",
+          "instance": "/api/v1/auth/logout",
+          "status": 401,
+          "title": "Unauthorized",
+          "type": "https://zmd.com/problems/unauthorized",
+          "timestamp": "2026-02-22T08:10:00.000000000Z"
+        }
+        """;
+
     // ----- 403 -----
     public static final String ACCOUNT_DISABLED_403 = """
         {
