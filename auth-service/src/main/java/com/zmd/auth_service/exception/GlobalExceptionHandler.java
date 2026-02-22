@@ -4,6 +4,7 @@ import com.zmd.auth_service.api.error.ProblemUris;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -21,6 +22,7 @@ import static com.zmd.auth_service.api.error.ProblemTypes.*;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final MediaType PROBLEM_JSON = MediaType.valueOf("application/problem+json");
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException e, HttpServletRequest req) {
@@ -64,7 +66,7 @@ public class GlobalExceptionHandler {
         );
         pd.setProperty(ERRORS, errors);
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+        return problem(HttpStatus.BAD_REQUEST, pd);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -76,7 +78,7 @@ public class GlobalExceptionHandler {
                 VALIDATION_ERROR,
                 req
         );
-        return ResponseEntity.badRequest().body(pd);
+        return problem(HttpStatus.BAD_REQUEST, pd);
     }
 
     @ExceptionHandler(ErrorResponseException.class)
@@ -107,7 +109,10 @@ public class GlobalExceptionHandler {
             pd.setTitle(e.getStatusCode().toString());
         }
 
-        return ResponseEntity.status(e.getStatusCode()).body(pd);
+        return ResponseEntity
+                .status(e.getStatusCode())
+                .contentType(PROBLEM_JSON)
+                .body(pd);
     }
 
     @ExceptionHandler(Exception.class)
@@ -127,7 +132,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest req
     ) {
         ProblemDetail pd = baseProblem(status, title, detail, typeSlug, req);
-        return ResponseEntity.status(status).body(pd);
+        return problem(status, pd);
+    }
+
+    private ResponseEntity<ProblemDetail> problem(HttpStatus status, ProblemDetail pd) {
+        return ResponseEntity
+                .status(status)
+                .contentType(PROBLEM_JSON)
+                .body(pd);
     }
 
     private ProblemDetail baseProblem(
