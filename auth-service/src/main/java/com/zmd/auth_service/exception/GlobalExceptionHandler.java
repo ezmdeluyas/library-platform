@@ -53,10 +53,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RefreshTokenReuseDetectedException.class)
     public ResponseEntity<ProblemDetail> handleReuse(RefreshTokenReuseDetectedException e, HttpServletRequest req) {
-        String instance = req.getRequestURI();
+        String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
         String type = ProblemUris.BASE + REFRESH_TOKEN_REUSE;
 
-        log.warn("event=refresh_token_reuse type={} instance={}", type, instance);
+        log.warn("event=refresh_token_reuse status=401 type={} instance={}", type, instance);
 
         return build(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected", e.getMessage(), REFRESH_TOKEN_REUSE, req);
     }
@@ -101,7 +101,6 @@ public class GlobalExceptionHandler {
 
         // Normalize instance to include query string
         String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
-        String type = (pd.getType() != null ? pd.getType().toString() : "");
         if (pd.getInstance() == null) {
             pd.setInstance(URI.create(instance));
         }
@@ -122,8 +121,8 @@ public class GlobalExceptionHandler {
             pd.setTitle(e.getStatusCode().toString());
         }
 
-        log.debug("event=spring_error_response status={} type={} instance={}",
-                e.getStatusCode().value(), type, instance);
+        String type = pd.getType() != null ? pd.getType().toString() : "";
+        log.debug("event=spring_error_response status={} type={} instance={}", e.getStatusCode().value(), type, instance);
 
         return ResponseEntity
                 .status(e.getStatusCode())
@@ -136,7 +135,7 @@ public class GlobalExceptionHandler {
         String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
         String type = ProblemUris.BASE + INTERNAL_ERROR;
 
-        log.error("Unhandled exception type={} instance={}", type, instance, e);
+        log.error("event=unhandled_exception status=500 type={} instance={}", type, instance, e);
 
         return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Unexpected error",
