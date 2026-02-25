@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
         String instance = req.getRequestURI();
         String type = ProblemUris.BASE + REFRESH_TOKEN_REUSE;
 
-        log.warn("Security event: refresh token reuse type={} instance={}", type, instance);
+        log.warn("event=refresh_token_reuse type={} instance={}", type, instance);
 
         return build(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected", e.getMessage(), REFRESH_TOKEN_REUSE, req);
     }
@@ -101,6 +101,7 @@ public class GlobalExceptionHandler {
 
         // Normalize instance to include query string
         String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
+        String type = (pd.getType() != null ? pd.getType().toString() : "");
         if (pd.getInstance() == null) {
             pd.setInstance(URI.create(instance));
         }
@@ -120,6 +121,9 @@ public class GlobalExceptionHandler {
         if (pd.getTitle() == null || pd.getTitle().isBlank()) {
             pd.setTitle(e.getStatusCode().toString());
         }
+
+        log.debug("event=spring_error_response status={} type={} instance={}",
+                e.getStatusCode().value(), type, instance);
 
         return ResponseEntity
                 .status(e.getStatusCode())
