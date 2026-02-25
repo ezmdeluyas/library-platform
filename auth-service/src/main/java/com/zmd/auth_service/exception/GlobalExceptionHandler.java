@@ -22,6 +22,7 @@ import static com.zmd.auth_service.api.error.ProblemTypes.*;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final MediaType PROBLEM_JSON = MediaType.valueOf("application/problem+json");
 
     @ExceptionHandler(InvalidCredentialsException.class)
@@ -50,8 +51,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RefreshTokenReuseDetectedException.class)
-    public ResponseEntity<ProblemDetail> handleReuse(RefreshTokenReuseDetectedException e, HttpServletRequest req
-    ) {
+    public ResponseEntity<ProblemDetail> handleReuse(RefreshTokenReuseDetectedException e, HttpServletRequest req) {
+        String instance = req.getRequestURI();
+        String type = ProblemUris.BASE + REFRESH_TOKEN_REUSE;
+
+        log.warn("Security event: refresh token reuse type={} instance={}", type, instance);
+
         return build(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected", e.getMessage(), REFRESH_TOKEN_REUSE, req);
     }
 
@@ -123,6 +128,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception e, HttpServletRequest req) {
+        String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
+        String type = ProblemUris.BASE + INTERNAL_ERROR;
+
+        log.error("Unhandled exception type={} instance={}", type, instance, e);
+
         return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Unexpected error",
                 "An unexpected error occurred.",
