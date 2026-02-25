@@ -3,6 +3,7 @@ package com.zmd.auth_service.exception;
 import com.zmd.auth_service.api.error.ProblemUris;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -20,9 +21,9 @@ import java.util.List;
 import static com.zmd.auth_service.api.error.ProblemFields.*;
 import static com.zmd.auth_service.api.error.ProblemTypes.*;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final MediaType PROBLEM_JSON = MediaType.valueOf("application/problem+json");
 
     @ExceptionHandler(InvalidCredentialsException.class)
