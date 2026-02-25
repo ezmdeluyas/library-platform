@@ -28,6 +28,6 @@ management:
 app:
   jwt:
     secret: ${APP_JWT_SECRET}
-    issuer: zmd-auth-service
+    issuer: ${APP_JWT_ISSUER}
     access-ttl: 15m
     refresh-ttl: 7d
