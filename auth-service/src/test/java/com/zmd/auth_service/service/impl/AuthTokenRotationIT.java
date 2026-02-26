@@ -5,11 +5,13 @@ import com.zmd.auth_service.dto.request.RefreshRequest;
 import com.zmd.auth_service.dto.request.RegisterRequest;
 import com.zmd.auth_service.repository.RefreshTokenRepository;
 import com.zmd.auth_service.utils.TokenUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -51,13 +53,22 @@ class AuthTokenRotationIT {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired RefreshTokenRepository refreshTokenRepository;
+    @Autowired JdbcTemplate jdbc;
+
+    @AfterEach
+    void cleanup() {
+        jdbc.execute("TRUNCATE TABLE refresh_tokens RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE user_roles RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE");
+    }
 
     @Test
     void refresh_shouldRotateRefreshToken_andRevokeOldOne() throws Exception {
 
         // register
+        String email = "ezion+" + java.util.UUID.randomUUID() + "@example.com";
         var register = new RegisterRequest(
-                "ezion@example.com",
+                email,
                 "Password1!",
                 "Zion",
                 "Deluyas"
@@ -69,7 +80,7 @@ class AuthTokenRotationIT {
                 .andExpect(status().isCreated());
 
         // login
-        var login = new LoginRequest("ezion@example.com", "Password1!");
+        var login = new LoginRequest(email, "Password1!");
 
         String loginResponse = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,4 +124,84 @@ class AuthTokenRotationIT {
         assertThat(oldTokenOpt.get().isRevoked())
                 .isTrue();
     }
+
+    @Test
+    void refresh_reuseOldRefreshToken_should401_andRevokeAllSessions() throws Exception {
+
+        // register
+        String email = "ezion+" + java.util.UUID.randomUUID() + "@example.com";
+        var register = new RegisterRequest(
+                email,
+                "Password1!",
+                "Zion",
+                "Deluyas"
+        );
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(register)))
+                .andExpect(status().isCreated());
+
+        // login
+        var login = new LoginRequest(email, "Password1!");
+
+        String loginBody = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(login)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode loginNode = objectMapper.readTree(loginBody);
+        String refreshToken1 = loginNode.path("refreshToken").asString();
+
+        assertThat(refreshToken1).isNotBlank();
+
+        // Refresh using refreshToken1 -> refreshToken2 (rotation)
+        var refreshReq1 = new RefreshRequest(refreshToken1);
+
+        String refreshBody1 = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(refreshReq1)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode refreshNode1 = objectMapper.readTree(refreshBody1);
+        String refreshToken2 = refreshNode1.path("refreshToken").asString();
+
+        assertThat(refreshToken2)
+                .isNotBlank()
+                .isNotEqualTo(refreshToken1);
+
+        // Reuse old refreshToken1 again -> MUST be 401 (reuse detected)
+        String reuseBody = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(refreshReq1)))
+                .andExpect(status().isUnauthorized())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        // Optional: assert problem type if you return it
+        // (adjust if your slug differs)
+        JsonNode reuseNode = objectMapper.readTree(reuseBody);
+        assertThat(reuseNode.path("type").asString())
+                .contains("refresh-token-reuse");
+
+        // After reuse detection, even refreshToken2 should now be unusable -> 401
+        var refreshReq2 = new RefreshRequest(refreshToken2);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(refreshReq2)))
+                .andExpect(status().isUnauthorized());
+
+        String hash2 = TokenUtils.sha256Hex(refreshToken2);
+        var token2 = refreshTokenRepository.findByTokenHash(hash2).orElseThrow();
+        assertThat(token2.isRevoked()).isTrue();
+    }
+
 }
