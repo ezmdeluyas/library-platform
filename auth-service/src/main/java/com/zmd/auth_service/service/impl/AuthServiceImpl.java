@@ -120,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(accessToken, refreshToken, TOKEN_TYPE, accessExpiry, user.getId(), user.getEmail(), roleNames);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = RefreshTokenReuseDetectedException.class)
     @Override
     public AuthResponse refresh(RefreshRequest refreshRequest) {
         String raw = refreshRequest.refreshToken().trim();
@@ -133,6 +133,22 @@ public class AuthServiceImpl implements AuthService {
         Instant now = Instant.now();
 
         if (existing.isExpired(now)) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        if (existing.isRevoked()) {
+
+            // If it was revoked because it was rotated → reuse attack
+            if (existing.getReplacedByTokenId() != null) {
+                refreshTokenRepository.revokeAllActiveByUserId(
+                        existing.getUser().getId(),
+                        now
+                );
+                refreshTokenRepository.flush();
+                throw new RefreshTokenReuseDetectedException();
+            }
+
+            // revoked for other reasons (logout, manual revoke, etc.)
             throw new InvalidRefreshTokenException();
         }
 

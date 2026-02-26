@@ -28,12 +28,13 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
             @Param("now") Instant now
     );
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
     update RefreshTokenEntity t
        set t.revokedAt = :now
      where t.user.id = :userId
        and t.revokedAt is null
+       and t.expiresAt > :now
     """)
     int revokeAllActiveByUserId(
             @Param("userId") UUID userId,
