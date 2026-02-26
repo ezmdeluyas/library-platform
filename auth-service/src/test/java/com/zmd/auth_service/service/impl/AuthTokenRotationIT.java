@@ -199,9 +199,20 @@ class AuthTokenRotationIT {
                         .content(objectMapper.writeValueAsString(refreshReq2)))
                 .andExpect(status().isUnauthorized());
 
-        String hash2 = TokenUtils.sha256Hex(refreshToken2);
-        var token2 = refreshTokenRepository.findByTokenHash(hash2).orElseThrow();
-        assertThat(token2.isRevoked()).isTrue();
+        // After reuse detection, assert ALL tokens for this user are revoked in DB
+        String userId = loginNode.path("userId").asString();
+
+        Integer activeCount = jdbc.queryForObject(
+        """
+            select count(*) 
+            from refresh_tokens 
+            where user_id = cast(? as uuid)
+            and revoked_at is null
+        """, Integer.class, userId);
+
+        assertThat(activeCount)
+                .as("After reuse detected, there should be NO active refresh tokens left for the user")
+                .isZero();
     }
 
 }
