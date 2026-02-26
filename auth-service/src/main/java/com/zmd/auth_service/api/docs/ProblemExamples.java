@@ -80,11 +80,11 @@ public final class ProblemExamples {
 
     public static final String REFRESH_TOKEN_REUSE_401 = """
         {
-          "detail": "Refresh token reuse detected. All sessions revoked.",
+          "detail": "Your session is no longer valid. Please sign in again.",
           "instance": "/api/v1/auth/refresh",
           "status": 401,
-          "title": "Refresh token reuse detected",
-          "type": "https://zmd.com/problems/refresh-token-reuse-detected",
+          "title": "Authentication failed",
+          "type": "https://zmd.com/problems/refresh-token-reuse",
           "timestamp": "2026-02-22T08:00:00.000000000Z"
         }
         """;
@@ -103,7 +103,7 @@ public final class ProblemExamples {
     // ----- 403 -----
     public static final String ACCOUNT_DISABLED_403 = """
         {
-          "detail": "Account is disabled.",
+          "detail": "Your account is disabled. Please contact support.",
           "instance": "/api/v1/auth/login",
           "status": 403,
           "title": "Account disabled",
@@ -112,10 +112,21 @@ public final class ProblemExamples {
         }
         """;
 
+    public static final String ACCESS_DENIED_403 = """
+        {
+          "type": "https://zmd.com/problems/access-denied",
+          "title": "Access denied",
+          "status": 403,
+          "detail": "You are not allowed to perform this action.",
+          "instance": "/api/v1/auth/logout",
+          "timestamp": "2026-02-26T07:25:53.051354136Z"
+        }
+        """;
+
     // ----- 409 -----
     public static final String EMAIL_EXISTS_409 = """
         {
-          "detail": "Email already exists: ezmdeluyas@example.com",
+          "detail": "An account with this email already exists.",
           "instance": "/api/v1/auth/register",
           "status": 409,
           "title": "Email already exists",

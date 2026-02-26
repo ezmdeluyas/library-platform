@@ -57,6 +57,7 @@ public class AuthController {
     @Operation(summary = "Logout user and invalidate refresh token")
     @SecurityRequirement(name = "bearerAuth")
     @ApiLoginAuthErrors
+    @ApiAccessDeniedError
     @ApiResponse(responseCode = "200", description = "Logged out successfully")
     @PostMapping("/logout")
     public ResponseEntity<MessageResponse> logout(@Valid @RequestBody RefreshRequest refreshRequest) {
