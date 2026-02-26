@@ -136,6 +136,8 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidRefreshTokenException();
         }
 
+        UserEntity user = existing.getUser();
+
         if (existing.isRevoked()) {
 
             // If it was revoked because it was rotated → reuse attack
@@ -152,7 +154,6 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidRefreshTokenException();
         }
 
-        UserEntity user = existing.getUser();
         if (!user.isEnabled()) {
             throw new AccountDisabledException();
         }
@@ -178,6 +179,7 @@ public class AuthServiceImpl implements AuthService {
         if (updated == 0) {
             // Someone else already rotated it → reuse attack
             refreshTokenRepository.revokeAllActiveByUserId(user.getId(), now);
+            refreshTokenRepository.flush();
             throw new RefreshTokenReuseDetectedException();
         }
 
