@@ -4,7 +4,6 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.codec.Hex;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.*;
 
@@ -22,6 +21,9 @@ public class JwtConfig {
 
     @Bean
     public SecretKey secretKey() {
+        if (props.secret() == null || props.secret().isBlank()) {
+            throw new IllegalStateException("app.jwt.secret must be set");
+        }
         byte[] keyBytes = Hex.decode(props.secret());
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
