@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,7 +19,8 @@ import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import static com.zmd.auth_service.api.error.ProblemFields.*;
+import static com.zmd.auth_service.api.error.ProblemFields.ERRORS;
+import static com.zmd.auth_service.api.error.ProblemFields.TIMESTAMP;
 import static com.zmd.auth_service.api.error.ProblemTypes.*;
 
 @Slf4j
@@ -28,27 +30,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException e, HttpServletRequest req) {
-        return build(HttpStatus.UNAUTHORIZED, "Invalid credentials", e.getMessage(), INVALID_CREDENTIALS, req);
+        return build(HttpStatus.UNAUTHORIZED, "Invalid credentials", "Invalid email or password", INVALID_CREDENTIALS, req);
     }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ResponseEntity<ProblemDetail> handleInvalidRefreshToken(InvalidRefreshTokenException e, HttpServletRequest req) {
-        return build(HttpStatus.UNAUTHORIZED, "Invalid refresh token", e.getMessage(), INVALID_REFRESH_TOKEN, req);
+        return build(HttpStatus.UNAUTHORIZED, "Invalid refresh token", "Refresh token is invalid or has expired", INVALID_REFRESH_TOKEN, req);
     }
 
     @ExceptionHandler(AccountDisabledException.class)
     public ResponseEntity<ProblemDetail> handleAccountDisabled(AccountDisabledException e, HttpServletRequest req) {
-        return build(HttpStatus.FORBIDDEN, "Account disabled", e.getMessage(), ACCOUNT_DISABLED, req);
+        return build(HttpStatus.FORBIDDEN, "Account disabled", "Your account is disabled. Please contact support", ACCOUNT_DISABLED, req);
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleEmailAlreadyExists(EmailAlreadyExistsException e, HttpServletRequest req) {
-        return build(HttpStatus.CONFLICT, "Email already exists", e.getMessage(), EMAIL_ALREADY_EXISTS, req);
+        return build(HttpStatus.CONFLICT, "Email already exists", "An account with this email already exists", EMAIL_ALREADY_EXISTS, req);
     }
 
     @ExceptionHandler(RoleNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleRoleNotFound(RoleNotFoundException e, HttpServletRequest req) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Role not found", e.getMessage(), ROLE_NOT_FOUND, req);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Server configuration error", "A required role configuration is missing", ROLE_NOT_FOUND, req);
     }
 
     @ExceptionHandler(RefreshTokenReuseDetectedException.class)
@@ -58,7 +60,7 @@ public class GlobalExceptionHandler {
 
         log.warn("event=refresh_token_reuse status=401 type={} instance={}", type, instance);
 
-        return build(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected", e.getMessage(), REFRESH_TOKEN_REUSE, req);
+        return build(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected", "Your session is no longer valid. Please sign in again", REFRESH_TOKEN_REUSE, req);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -86,11 +88,31 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = baseProblem(
                 HttpStatus.BAD_REQUEST,
                 "Validation failed",
-                e.getMessage(),
+                "One or more values are invalid",
                 VALIDATION_ERROR,
                 req
         );
         return problem(HttpStatus.BAD_REQUEST, pd);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(
+            AccessDeniedException e,
+            HttpServletRequest req
+    ) {
+        String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
+
+        String type = ProblemUris.BASE + ACCESS_DENIED;
+
+        log.warn("event=access_denied status=403 type={} instance={}", type, instance);
+
+        return build(
+                HttpStatus.FORBIDDEN,
+                "Access denied",
+                "You are not allowed to perform this action.",
+                ACCESS_DENIED,
+                req
+        );
     }
 
     @ExceptionHandler(ErrorResponseException.class)

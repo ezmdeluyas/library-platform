@@ -16,6 +16,9 @@ import com.zmd.auth_service.repository.UserRepository;
 import com.zmd.auth_service.service.AuthService;
 import com.zmd.auth_service.utils.TokenUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
@@ -198,8 +201,23 @@ public class AuthServiceImpl implements AuthService {
         RefreshTokenEntity existing = refreshTokenRepository.findByTokenHash(hash).orElse(null);
         Instant now = Instant.now();
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String subject = null;
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof Jwt jwt) {
+            subject = jwt.getSubject();
+        }
+
         if (existing == null) {
             return new MessageResponse(LOGGED_OUT_MESSAGE);
+        }
+
+        if (subject == null) {
+            throw new AccessDeniedException("Logout not allowed: unauthenticated");
+        }
+
+        String ownerId = existing.getUser().getId().toString();
+        if (!subject.equals(ownerId)) {
+            throw new AccessDeniedException("Access denied");
         }
 
         if (existing.isRevoked() || existing.isExpired(now)) {
@@ -208,6 +226,6 @@ public class AuthServiceImpl implements AuthService {
 
         existing.revoke(now);
 
-        return new  MessageResponse(LOGGED_OUT_MESSAGE);
+        return new MessageResponse(LOGGED_OUT_MESSAGE);
     }
 }
