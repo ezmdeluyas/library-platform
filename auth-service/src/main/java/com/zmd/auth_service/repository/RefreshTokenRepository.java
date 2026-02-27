@@ -21,6 +21,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
            t.replacedByTokenId = :replacementId
      where t.tokenHash = :hash
        and t.revokedAt is null
+       and t.expiresAt > :now
     """)
     int rotate(
             @Param("hash") String hash,
