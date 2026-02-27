@@ -171,8 +171,6 @@ public class AuthServiceImpl implements AuthService {
                 refreshExpiry
         );
 
-        refreshTokenRepository.save(replacement);
-
         // Atomic rotation
         int updated = refreshTokenRepository.rotate(hash, newId, now);
 
@@ -182,6 +180,9 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.flush();
             throw new RefreshTokenReuseDetectedException();
         }
+
+        // Only persist the replacement after successful rotate
+        refreshTokenRepository.save(replacement);
 
         // Generate new access token
         Set<String> roleNames = user.getRoles()
