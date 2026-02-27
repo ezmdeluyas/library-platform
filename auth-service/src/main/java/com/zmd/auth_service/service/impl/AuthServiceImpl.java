@@ -171,6 +171,11 @@ public class AuthServiceImpl implements AuthService {
                 refreshExpiry
         );
 
+        // Must save & flush replacement first due to FK on replaced_by_token_id.
+        // Ensures UPDATE rotate() does not violate FK under concurrency.
+        refreshTokenRepository.save(replacement);
+        refreshTokenRepository.flush();
+
         // Atomic rotation
         int updated = refreshTokenRepository.rotate(hash, newId, now);
 
@@ -180,9 +185,6 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.flush();
             throw new RefreshTokenReuseDetectedException();
         }
-
-        // Only persist the replacement after successful rotate
-        refreshTokenRepository.save(replacement);
 
         // Generate new access token
         Set<String> roleNames = user.getRoles()
