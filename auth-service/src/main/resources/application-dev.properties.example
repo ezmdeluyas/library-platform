@@ -1,4 +1,4 @@
-server.port=8080
+server.port=8081
 
 spring.datasource.url=jdbc:postgresql://localhost:5432/authdb
 spring.datasource.username=app
@@ -6,3 +6,7 @@ spring.datasource.password=
 
 # Dev-only secret (OK for local)
 app.jwt.secret=
+
+# Dev-only makes SQL logs pretty
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
