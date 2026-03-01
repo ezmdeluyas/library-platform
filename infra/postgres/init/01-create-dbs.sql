@@ -1,2 +1,2 @@
 ﻿CREATE DATABASE authdb;
-CREATE DATABASE librarydbclear;
+CREATE DATABASE librarydb;
