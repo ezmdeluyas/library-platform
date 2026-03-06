@@ -8,6 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface BookCopyRepository extends JpaRepository<BookCopyEntity, UUID> {
-    Optional<BookCopyEntity> findByIdAndDeleteAtIsNull(UUID id);
-    long countByBookIdAndDeleteAtIsNull(UUID bookId, CopyStatus status);
+    Optional<BookCopyEntity> findByIdAndDeletedAtIsNull(UUID id);
+    long countByBookIdAndStatusAndDeletedAtIsNull(UUID bookId, CopyStatus status);
 }

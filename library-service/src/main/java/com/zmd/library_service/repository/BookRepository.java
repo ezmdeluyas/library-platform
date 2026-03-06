@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface BookRepository extends JpaRepository<BookEntity, UUID> {
-    Optional<BookEntity> findByIdAndDeleteAtIsNull(UUID id);
+    Optional<BookEntity> findByIdAndDeletedAtIsNull(UUID id);
 }
