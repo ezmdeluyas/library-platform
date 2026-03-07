@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -51,7 +52,25 @@ public class LoanEntity {
         loan.bookCopy = bookCopy;
         loan.userId = userId;
         loan.dueAt = dueAt;
+        loan.renewalCount = 0;
         return loan;
+    }
+
+    public void markReturned(Instant returnedAt) {
+        this.returnedAt = returnedAt;
+    }
+
+    public void renew(int extensionDays) {
+        this.dueAt = this.dueAt.plus(Duration.ofDays(extensionDays));
+        this.renewalCount++;
+    }
+
+    public boolean isReturned() {
+        return this.returnedAt != null;
+    }
+
+    public boolean isOverdue(Instant now) {
+        return this.returnedAt == null && this.dueAt.isBefore(now);
     }
 
 }

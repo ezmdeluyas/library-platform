@@ -57,11 +57,26 @@ public class BookCopyEntity {
         copy.copyCode = copyCode;
         copy.location = location;
 
-        // Business defaults
         copy.status = CopyStatus.AVAILABLE;
         copy.version = 0;
 
         return copy;
+    }
+
+    public void markBorrowed() {
+        this.status = CopyStatus.BORROWED;
+    }
+
+    public void markAvailable() {
+        this.status = CopyStatus.AVAILABLE;
+    }
+
+    public boolean isAvailable() {
+        return this.status == CopyStatus.AVAILABLE;
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 
 }
