@@ -1,6 +1,6 @@
 package com.zmd.library_service.service.impl;
 
-import com.zmd.library_service.config.LibraryConfig;
+import com.zmd.library_service.config.LibraryLoanConfig;
 import com.zmd.library_service.dto.response.LoanResponse;
 import com.zmd.library_service.entity.BookCopyEntity;
 import com.zmd.library_service.entity.LoanEntity;
@@ -10,6 +10,8 @@ import com.zmd.library_service.repository.BookCopyRepository;
 import com.zmd.library_service.repository.LoanRepository;
 import com.zmd.library_service.service.LoanService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +25,13 @@ public class LoanServiceImpl implements LoanService {
 
     private final LoanRepository loanRepository;
     private final BookCopyRepository bookCopyRepository;
-    private final LibraryConfig libraryConfig;
+    private final LibraryLoanConfig loanConfig;
 
     @Override
     @Transactional
     public LoanResponse borrowBook(UUID copyId, UUID userId) {
-        BookCopyEntity copy = bookCopyRepository.findByIdAndDeletedAtIsNull(copyId)
+        BookCopyEntity copy = bookCopyRepository
+                .findByIdAndDeletedAtIsNull(copyId)
                 .orElseThrow(ResourceNotFoundException::new);
 
         if (copy.getBook().getDeletedAt() != null) {
@@ -40,11 +43,11 @@ public class LoanServiceImpl implements LoanService {
         }
 
         long activeLoanCount = loanRepository.countByUserIdAndReturnedAtIsNull(userId);
-        if (activeLoanCount >= libraryConfig.maxActive()) {
+        if (activeLoanCount >= loanConfig.maxActive()) {
             throw new BusinessRuleViolationException("Maximum active loans reached");
         }
 
-        Instant dueAt = Instant.now().plus(Duration.ofDays(libraryConfig.defaultDays()));
+        Instant dueAt = Instant.now().plus(Duration.ofDays(loanConfig.defaultDays()));
 
         copy.markBorrowed();
 
@@ -55,19 +58,57 @@ public class LoanServiceImpl implements LoanService {
                 dueAt
         );
 
+        try {
+            LoanEntity saved = loanRepository.saveAndFlush(loan);
+            LoanEntity reloaded = loanRepository.findById(saved.getId())
+                    .orElseThrow(ResourceNotFoundException::new);
+
+            return LoanResponse.from(reloaded);
+        } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
+            throw new BusinessRuleViolationException("Copy is already borrowed");
+        }
+    }
+
+    @Override
+    @Transactional
+    public LoanResponse returnBook(UUID copyId, UUID userId) {
+        LoanEntity loan = loanRepository
+                .findByBookCopyIdAndUserIdAndReturnedAtIsNull(copyId, userId)
+                .orElseThrow(ResourceNotFoundException::new);
+
+        Instant now = Instant.now();
+        loan.markReturned(now);
+        loan.getBookCopy().markAvailable();
+
         LoanEntity saved = loanRepository.saveAndFlush(loan);
-        LoanEntity reloaded = loanRepository.findById(saved.getId()).orElseThrow();
+        LoanEntity reloaded = loanRepository.findById(saved.getId())
+                .orElseThrow(ResourceNotFoundException::new);
 
         return LoanResponse.from(reloaded);
     }
 
     @Override
-    public LoanResponse returnBook(UUID copyId, UUID userId) {
-        return null;
-    }
-
-    @Override
+    @Transactional
     public LoanResponse renewLoan(UUID loanId, UUID userId) {
-        return null;
+        LoanEntity loan = loanRepository
+                .findByIdAndUserIdAndReturnedAtIsNull(loanId, userId)
+                .orElseThrow(ResourceNotFoundException::new);
+
+        Instant now = Instant.now();
+        if (loan.isOverdue(now)) {
+            throw new BusinessRuleViolationException("Overdue loans cannot be renewed");
+        }
+
+        if (loan.getRenewalCount() >= loanConfig.maxRenewals()) {
+            throw new BusinessRuleViolationException("Loan has reached the maximum number of renewals");
+        }
+
+        loan.renew(loanConfig.renewalExtensionDays());
+
+        LoanEntity saved = loanRepository.saveAndFlush(loan);
+        LoanEntity reloaded = loanRepository.findById(saved.getId())
+                .orElseThrow(ResourceNotFoundException::new);
+
+        return LoanResponse.from(reloaded);
     }
 }

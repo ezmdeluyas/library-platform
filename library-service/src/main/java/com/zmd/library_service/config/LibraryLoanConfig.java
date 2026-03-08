@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 @ConfigurationProperties("library.loan")
-public record LibraryConfig(
+public record LibraryLoanConfig(
         @DefaultValue("14") int defaultDays,
         @DefaultValue("5") int maxActive,
         @DefaultValue("2") int maxRenewals,
