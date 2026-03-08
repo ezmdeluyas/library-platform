@@ -9,7 +9,7 @@ spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.open-in-view=false
 
 # JWT (shared, non-secret)
-app.jwt.issuer=zmd-auth-service
+app.jwt.issuer=library-auth
 app.jwt.access-ttl=15m
 app.jwt.refresh-ttl=7d
 
