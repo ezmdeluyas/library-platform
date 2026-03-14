@@ -9,6 +9,7 @@ import com.zmd.library_service.exception.ResourceNotFoundException;
 import com.zmd.library_service.repository.BookCopyRepository;
 import com.zmd.library_service.repository.LoanRepository;
 import com.zmd.library_service.service.LoanService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -26,6 +27,7 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final BookCopyRepository bookCopyRepository;
     private final LibraryLoanConfig loanConfig;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -59,11 +61,7 @@ public class LoanServiceImpl implements LoanService {
         );
 
         try {
-            LoanEntity saved = loanRepository.saveAndFlush(loan);
-            LoanEntity reloaded = loanRepository.findById(saved.getId())
-                    .orElseThrow(ResourceNotFoundException::new);
-
-            return LoanResponse.from(reloaded);
+            return saveRefreshAndMap(loan);
         } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
             throw new BusinessRuleViolationException("Copy is already borrowed");
         }
@@ -80,11 +78,7 @@ public class LoanServiceImpl implements LoanService {
         loan.markReturned(now);
         loan.getBookCopy().markAvailable();
 
-        LoanEntity saved = loanRepository.saveAndFlush(loan);
-        LoanEntity reloaded = loanRepository.findById(saved.getId())
-                .orElseThrow(ResourceNotFoundException::new);
-
-        return LoanResponse.from(reloaded);
+        return saveRefreshAndMap(loan);
     }
 
     @Override
@@ -105,10 +99,12 @@ public class LoanServiceImpl implements LoanService {
 
         loan.renew(loanConfig.renewalExtensionDays());
 
-        LoanEntity saved = loanRepository.saveAndFlush(loan);
-        LoanEntity reloaded = loanRepository.findById(saved.getId())
-                .orElseThrow(ResourceNotFoundException::new);
+        return saveRefreshAndMap(loan);
+    }
 
-        return LoanResponse.from(reloaded);
+    private LoanResponse saveRefreshAndMap(LoanEntity loan) {
+        LoanEntity saved = loanRepository.saveAndFlush(loan);
+        entityManager.refresh(saved);
+        return LoanResponse.from(saved);
     }
 }
