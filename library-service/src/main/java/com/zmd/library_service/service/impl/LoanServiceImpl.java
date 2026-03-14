@@ -34,10 +34,10 @@ public class LoanServiceImpl implements LoanService {
     public LoanResponse borrowBook(UUID copyId, UUID userId) {
         BookCopyEntity copy = bookCopyRepository
                 .findByIdAndDeletedAtIsNull(copyId)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("Book copy not found"));
 
         if (copy.getBook().getDeletedAt() != null) {
-            throw new ResourceNotFoundException();
+            throw new ResourceNotFoundException("Book not found");
         }
 
         if (!copy.isAvailable()) {
@@ -46,7 +46,7 @@ public class LoanServiceImpl implements LoanService {
 
         long activeLoanCount = loanRepository.countByUserIdAndReturnedAtIsNull(userId);
         if (activeLoanCount >= loanConfig.maxActive()) {
-            throw new BusinessRuleViolationException("Maximum active loans reached");
+            throw new BusinessRuleViolationException("Maximum number of active loans reached");
         }
 
         Instant dueAt = Instant.now().plus(Duration.ofDays(loanConfig.defaultDays()));
@@ -72,7 +72,7 @@ public class LoanServiceImpl implements LoanService {
     public LoanResponse returnBook(UUID copyId, UUID userId) {
         LoanEntity loan = loanRepository
                 .findByBookCopyIdAndUserIdAndReturnedAtIsNull(copyId, userId)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("Active loan not found for this copy"));
 
         Instant now = Instant.now();
         loan.markReturned(now);
@@ -86,7 +86,7 @@ public class LoanServiceImpl implements LoanService {
     public LoanResponse renewLoan(UUID loanId, UUID userId) {
         LoanEntity loan = loanRepository
                 .findByIdAndUserIdAndReturnedAtIsNull(loanId, userId)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("Active loan not found"));
 
         Instant now = Instant.now();
         if (loan.isOverdue(now)) {
