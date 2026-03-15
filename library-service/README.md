@@ -19,3 +19,7 @@ Technologies:
 - PostgreSQL
 - Flyway
 - Docker
+
+API documentation:
+- OpenAPI JSON: `/v3/api-docs`
+- Swagger UI: `/swagger-ui.html`
