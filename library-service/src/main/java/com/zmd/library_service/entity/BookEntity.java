@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -31,6 +33,12 @@ public class BookEntity {
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
+    private Set<BookAuthorEntity> bookAuthors = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
+    private Set<BookCopyEntity> copies = new LinkedHashSet<>();
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
 
@@ -55,5 +63,4 @@ public class BookEntity {
         book.category = category;
         return book;
     }
-
 }
