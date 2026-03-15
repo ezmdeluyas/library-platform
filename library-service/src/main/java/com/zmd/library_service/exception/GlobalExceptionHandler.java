@@ -1,9 +1,9 @@
 package com.zmd.library_service.exception;
 
+import com.zmd.library_service.api.error.ApiProblem;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +20,11 @@ import java.util.UUID;
 
 import static com.zmd.library_service.api.error.ProblemFields.ERRORS;
 import static com.zmd.library_service.api.error.ProblemFields.TIMESTAMP;
-import static com.zmd.library_service.api.error.ProblemTypes.*;
-import static com.zmd.library_service.api.error.ProblemUris.BASE;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     private static final MediaType PROBLEM_JSON = MediaType.valueOf("application/problem+json");
 
     @ExceptionHandler(BusinessRuleViolationException.class)
@@ -34,13 +33,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest req
     ) {
         String detail = messageOrDefault(e.getMessage(), "The request violates a business rule.");
-        return build(
-                HttpStatus.CONFLICT,
-                "Business rule violated",
-                detail,
-                BUSINESS_RULE_VIOLATION,
-                req
-        );
+        return build(ApiProblem.BUSINESS_RULE_VIOLATION, detail, req);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -49,13 +42,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest req
     ) {
         String detail = messageOrDefault(e.getMessage(), "The requested resource was not found.");
-        return build(
-                HttpStatus.NOT_FOUND,
-                "Resource not found",
-                detail,
-                RESOURCE_NOT_FOUND,
-                req
-        );
+        return build(ApiProblem.RESOURCE_NOT_FOUND, detail, req);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -70,15 +57,13 @@ public class GlobalExceptionHandler {
                 .toList();
 
         ProblemDetail pd = baseProblem(
-                HttpStatus.BAD_REQUEST,
-                VALIDATION_FAILED_TITLE,
+                ApiProblem.VALIDATION_ERROR,
                 "One or more fields are invalid.",
-                VALIDATION_ERROR,
                 req
         );
         pd.setProperty(ERRORS, errors);
 
-        return problem(HttpStatus.BAD_REQUEST, pd);
+        return problem(ApiProblem.VALIDATION_ERROR.getStatus(), pd);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -93,14 +78,12 @@ public class GlobalExceptionHandler {
         }
 
         ProblemDetail pd = baseProblem(
-                HttpStatus.BAD_REQUEST,
-                VALIDATION_FAILED_TITLE,
+                ApiProblem.VALIDATION_ERROR,
                 detail,
-                VALIDATION_ERROR,
                 req
         );
 
-        return problem(HttpStatus.BAD_REQUEST, pd);
+        return problem(ApiProblem.VALIDATION_ERROR.getStatus(), pd);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -114,15 +97,13 @@ public class GlobalExceptionHandler {
                 .toList();
 
         ProblemDetail pd = baseProblem(
-                HttpStatus.BAD_REQUEST,
-                VALIDATION_FAILED_TITLE,
+                ApiProblem.VALIDATION_ERROR,
                 "One or more values are invalid.",
-                VALIDATION_ERROR,
                 req
         );
         pd.setProperty(ERRORS, errors);
 
-        return problem(HttpStatus.BAD_REQUEST, pd);
+        return problem(ApiProblem.VALIDATION_ERROR.getStatus(), pd);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -131,16 +112,13 @@ public class GlobalExceptionHandler {
             HttpServletRequest req
     ) {
         String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
-
-        String type = BASE + ACCESS_DENIED;
+        String type = ApiProblem.ACCESS_DENIED.getType();
 
         log.warn("event=access_denied status=403 type={} instance={}", type, instance);
 
         return build(
-                HttpStatus.FORBIDDEN,
-                "Access denied",
+                ApiProblem.ACCESS_DENIED,
                 "You do not have permission to access this resource.",
-                ACCESS_DENIED,
                 req
         );
     }
@@ -148,31 +126,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception e, HttpServletRequest req) {
         String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
-        String type = BASE + INTERNAL_ERROR;
+        String type = ApiProblem.INTERNAL_ERROR.getType();
 
         log.error("event=unhandled_exception status=500 type={} instance={}", type, instance, e);
 
         return build(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Unexpected error",
+                ApiProblem.INTERNAL_ERROR,
                 "An unexpected error occurred.",
-                INTERNAL_ERROR,
                 req
         );
     }
 
     private ResponseEntity<ProblemDetail> build(
-            HttpStatus status,
-            String title,
+            ApiProblem apiProblem,
             String detail,
-            String typeSlug,
             HttpServletRequest req
     ) {
-        ProblemDetail pd = baseProblem(status, title, detail, typeSlug, req);
-        return problem(status, pd);
+        ProblemDetail pd = baseProblem(apiProblem, detail, req);
+        return problem(apiProblem.getStatus(), pd);
     }
 
-    private ResponseEntity<ProblemDetail> problem(HttpStatus status, ProblemDetail pd) {
+    private ResponseEntity<ProblemDetail> problem(org.springframework.http.HttpStatus status, ProblemDetail pd) {
         return ResponseEntity
                 .status(status)
                 .contentType(PROBLEM_JSON)
@@ -180,15 +154,13 @@ public class GlobalExceptionHandler {
     }
 
     private ProblemDetail baseProblem(
-            HttpStatus status,
-            String title,
+            ApiProblem apiProblem,
             String detail,
-            String typeSlug,
             HttpServletRequest req
     ) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
-        pd.setTitle(title);
-        pd.setType(URI.create(BASE + typeSlug));
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(apiProblem.getStatus(), detail);
+        pd.setTitle(apiProblem.getTitle());
+        pd.setType(URI.create(apiProblem.getType()));
 
         String instance = req.getRequestURI() + (req.getQueryString() != null ? "?" + req.getQueryString() : "");
         pd.setInstance(URI.create(instance));
