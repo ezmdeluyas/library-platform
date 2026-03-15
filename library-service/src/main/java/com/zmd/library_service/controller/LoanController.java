@@ -23,12 +23,12 @@ import java.util.UUID;
 @RequestMapping("/api/v1/loans")
 @RequiredArgsConstructor
 @Tag(name = "Loans", description = "APIs for borrowing, returning, and renewing book loans")
+@SecurityRequirement(name = "bearerAuth")
 public class LoanController {
 
     private final LoanService loanService;
 
     @Operation(summary = "Borrow a book copy")
-    @SecurityRequirement(name = "bearerAuth")
     @ApiCommonWriteErrors
     @ApiBorrowErrors
     @ApiAccessDeniedError
@@ -40,7 +40,6 @@ public class LoanController {
     }
 
     @Operation(summary = "Return a borrowed book copy")
-    @SecurityRequirement(name = "bearerAuth")
     @ApiCommonWriteErrors
     @ApiReturnErrors
     @ApiAccessDeniedError
@@ -52,7 +51,6 @@ public class LoanController {
     }
 
     @Operation(summary = "Renew an active loan")
-    @SecurityRequirement(name = "bearerAuth")
     @ApiCommonWriteErrors
     @ApiRenewErrors
     @ApiAccessDeniedError
