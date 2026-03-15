@@ -24,7 +24,6 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
@@ -37,7 +36,6 @@ public class AuthServiceImpl implements AuthService {
     private static final String ROLE_USER = "ROLE_USER";
     private static final String TOKEN_TYPE = "Bearer";
     private static final String LOGGED_OUT_MESSAGE = "Logged out successfully";
-    private final SecureRandom secureRandom = new SecureRandom();
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
