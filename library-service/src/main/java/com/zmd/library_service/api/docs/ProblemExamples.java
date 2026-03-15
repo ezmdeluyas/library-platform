@@ -72,6 +72,17 @@ public final class ProblemExamples {
         }
         """;
 
+    public static final String BORROW_BOOK_NOT_FOUND_404 = """
+        {
+          "type": "https://zmd.com/problems/resource-not-found",
+          "title": "Resource not found",
+          "status": 404,
+          "detail": "Book not found",
+          "instance": "/api/v1/loans/borrow/8b4f78f7-0330-4f04-a3ea-2ef6e2b3f5b4",
+          "timestamp": "2026-02-22T07:40:15.000000000Z"
+        }
+        """;
+
     public static final String BORROW_COPY_NOT_AVAILABLE_409 = """
         {
           "type": "https://zmd.com/problems/business-rule-violation",
@@ -113,6 +124,17 @@ public final class ProblemExamples {
           "detail": "Loan has reached the maximum number of renewals",
           "instance": "/api/v1/loans/renew/1498f44f-d472-45ad-bfcb-fd63203ef7f8",
           "timestamp": "2026-02-22T07:42:30.000000000Z"
+        }
+        """;
+
+    public static final String BORROW_COPY_ALREADY_BORROWED_409 = """
+        {
+          "type": "https://zmd.com/problems/business-rule-violation",
+          "title": "Business rule violated",
+          "status": 409,
+          "detail": "Copy is already borrowed",
+          "instance": "/api/v1/loans/borrow/8b4f78f7-0330-4f04-a3ea-2ef6e2b3f5b4",
+          "timestamp": "2026-02-22T07:41:45.000000000Z"
         }
         """;
 

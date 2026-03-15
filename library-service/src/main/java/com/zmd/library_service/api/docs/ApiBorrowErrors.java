@@ -11,7 +11,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target({ElementType.METHOD, ElementType.TYPE, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @ApiResponse(
@@ -20,7 +20,10 @@ import java.lang.annotation.Target;
         content = @Content(
                 mediaType = "application/problem+json",
                 schema = @Schema(implementation = ProblemDetailDoc.class),
-                examples = @ExampleObject(name = "Book copy not found", value = ProblemExamples.BORROW_COPY_NOT_FOUND_404)
+                examples = {
+                        @ExampleObject(name = "Book copy not found", value = ProblemExamples.BORROW_COPY_NOT_FOUND_404),
+                        @ExampleObject(name = "Book not found", value = ProblemExamples.BORROW_BOOK_NOT_FOUND_404)
+                }
         )
 )
 @ApiResponse(
@@ -31,7 +34,8 @@ import java.lang.annotation.Target;
                 schema = @Schema(implementation = ProblemDetailDoc.class),
                 examples = {
                         @ExampleObject(name = "Copy not available", value = ProblemExamples.BORROW_COPY_NOT_AVAILABLE_409),
-                        @ExampleObject(name = "Max active loans reached", value = ProblemExamples.BORROW_MAX_ACTIVE_LOANS_409)
+                        @ExampleObject(name = "Max active loans reached", value = ProblemExamples.BORROW_MAX_ACTIVE_LOANS_409),
+                        @ExampleObject(name = "Copy already borrowed", value = ProblemExamples.BORROW_COPY_ALREADY_BORROWED_409)
                 }
         )
 )
