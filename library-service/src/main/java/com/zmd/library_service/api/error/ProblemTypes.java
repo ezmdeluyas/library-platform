@@ -11,4 +11,5 @@ public final class ProblemTypes {
     public static final String INTERNAL_ERROR = "internal-error";
     public static final String VALIDATION_ERROR = "validation-error";
     public static final String UNAUTHORIZED = "unauthorized";
+    public static final String VALIDATION_FAILED_TITLE = "Validation failed";
 }

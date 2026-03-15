@@ -11,10 +11,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static com.zmd.library_service.api.error.ProblemFields.ERRORS;
 import static com.zmd.library_service.api.error.ProblemFields.TIMESTAMP;
@@ -57,7 +59,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ProblemDetail> handleMethodArgumentNotValid(
+    public ResponseEntity<ProblemDetail> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException e,
             HttpServletRequest req
     ) {
@@ -69,12 +71,34 @@ public class GlobalExceptionHandler {
 
         ProblemDetail pd = baseProblem(
                 HttpStatus.BAD_REQUEST,
-                "Validation failed",
+                VALIDATION_FAILED_TITLE,
                 "One or more fields are invalid.",
                 VALIDATION_ERROR,
                 req
         );
         pd.setProperty(ERRORS, errors);
+
+        return problem(HttpStatus.BAD_REQUEST, pd);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException e,
+            HttpServletRequest req
+    ) {
+        String detail = "Invalid value for parameter: " + e.getName();
+
+        if (e.getRequiredType() != null && UUID.class.equals(e.getRequiredType())) {
+            detail = "Invalid UUID format for parameter: " + e.getName();
+        }
+
+        ProblemDetail pd = baseProblem(
+                HttpStatus.BAD_REQUEST,
+                VALIDATION_FAILED_TITLE,
+                detail,
+                VALIDATION_ERROR,
+                req
+        );
 
         return problem(HttpStatus.BAD_REQUEST, pd);
     }
@@ -91,7 +115,7 @@ public class GlobalExceptionHandler {
 
         ProblemDetail pd = baseProblem(
                 HttpStatus.BAD_REQUEST,
-                "Validation failed",
+                VALIDATION_FAILED_TITLE,
                 "One or more values are invalid.",
                 VALIDATION_ERROR,
                 req

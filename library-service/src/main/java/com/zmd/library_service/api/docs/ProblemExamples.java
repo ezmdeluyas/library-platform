@@ -17,6 +17,17 @@ public final class ProblemExamples {
         }
         """;
 
+    public static final String INVALID_UUID_400 = """
+        {
+          "type": "https://zmd.com/problems/validation-error",
+          "title": "Validation failed",
+          "status": 400,
+          "detail": "Invalid UUID format for parameter: copyId",
+          "instance": "/api/v1/loans/borrow/not-a-uuid",
+          "timestamp": "2026-02-22T07:31:22.987654321Z"
+        }
+        """;
+
     public static final String UNAUTHORIZED_401 = """
         {
           "type": "https://zmd.com/problems/unauthorized",

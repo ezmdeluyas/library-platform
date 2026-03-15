@@ -22,7 +22,8 @@ import java.lang.annotation.Target;
                 mediaType = "application/problem+json",
                 schema = @Schema(implementation = ProblemDetailDoc.class),
                 examples = {
-                        @ExampleObject(name = "Validation failed", value = ProblemExamples.VALIDATION_400)
+                        @ExampleObject(name = "Validation failed", value = ProblemExamples.VALIDATION_400),
+                        @ExampleObject(name = "Invalid UUID", value = ProblemExamples.INVALID_UUID_400)
                 }
         )
 )
